@@ -1,0 +1,127 @@
+import sqlite3
+
+class DB:
+    def __init__(self):
+        self.conn = sqlite3.connect('calc.db')  #bd
+        self.cursor = self.conn.cursor()
+        
+    def create(self):
+        #structure
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS main_table 
+                             (id INT, name TEXT, value REAL)''')
+                             
+    def insert_sample(self):
+        self.cursor.execute("DELETE FROM main_table")
+        
+        #Pr
+        sample_data = [
+            (1, 'М', 100),
+            (2, 'З', 200),
+            (3, 'Э', 50)
+        ]
+        
+        for row in sample_data:
+            self.cursor.execute("INSERT INTO main_table VALUES (?, ?, ?)", row)
+            
+        self.conn.commit()
+        
+    def get_all(self):
+        #pr
+        self.cursor.execute("SELECT * FROM main_table")
+        return self.cursor.fetchall()
+        
+    def close(self):
+        self.conn.close()
+
+
+
+import sys
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
+from database import DB
+
+class Window(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.db = DB()
+        self.db.create()
+        self.initUI()
+        
+    def initUI(self):
+    
+        self.setWindowTitle('Расчет')
+        self.setGeometry(300, 300, 600, 450)
+        
+        widget = QWidget()
+        self.setCentralWidget(widget)
+        layout = QVBoxLayout()
+        
+        self.btn_add = QPushButton('Загрузить тест')
+        self.btn_add.clicked.connect(self.load_data)
+        
+        self.btn_calc = QPushButton('расчет')
+        self.btn_calc.clicked.connect(self.calculate)
+        
+        self.table = QTableWidget()
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(['Код', 'Наименование', 'Сумм'])
+        
+        self.result_label = QLabel('Результаты')
+        self.result_text = QTextEdit()
+        self.result_text.setReadOnly(True)
+        
+        layout.addWidget(self.btn_add)
+        layout.addWidget(self.btn_calc)
+        layout.addWidget(self.table)
+        layout.addWidget(self.result_label)
+        layout.addWidget(self.result_text)
+        widget.setLayout(layout)
+        
+    def load_data(self):
+        self.db.insert_sample()
+        self.show_table_data()
+        
+    def show_table_data(self):
+        data = self.db.get_all()
+        self.table.setRowCount(len(data))
+        
+        for i, row in enumerate(data):
+            for j, item in enumerate(row):
+                self.table.setItem(i, j, QTableWidgetItem(str(item)))
+                
+    def calculate(self):
+        data = self.db.get_all()
+        results = ""
+        #1
+        total = 0
+        for row in data:
+            if len(row) > 2:
+                total += float(row[2] if row[2] else 0)
+        
+        results += f"1. Общ сумма: {total:.2f}\n\n"
+        #2
+        results += "2.проценты:\n"
+        if total > 0:
+            for row in data:
+                if len(row) > 2:
+                    value = float(row[2] if row[2] else 0)
+                    percent = (value / total) * 100
+                    results += f"   {row[1]}: {percent:.1f}%\n"
+        self.result_text.setText(results)
+
+        if total > 0:
+            for i, row in enumerate(data):
+                if len(row) > 2:
+                    value = float(row[2] if row[2] else 0)
+                    percent = (value / total) * 100
+                    self.table.setItem(i, 2, 
+                                     QTableWidgetItem(f'{value} ({percent:.1f}%)'))
+
+def main():
+    app = QApplication(sys.argv)
+    win = Window()
+    win.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
