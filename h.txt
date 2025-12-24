@@ -1,0 +1,78 @@
+def load_data(filename):
+    data = []
+    try:
+        with open(f'input/{filename}', 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    data.append(line.split(';'))
+    except:
+        pass
+    return data
+
+      
+def calc_first(data1, data2):
+    # 1
+    total = 0
+    for row in data1[1:]:
+        if len(row) > 3:
+            total += float(row[3])
+    return total
+
+def calc_second(data1, data2):
+    # 2 
+    results = []
+    total = calc_first(data1, data2)
+    
+    if total > 0:
+        for row in data1[1:]:
+            if len(row) > 3:
+                value = float(row[3])
+                percent = (value / total) * 100
+                results.append([row[0], percent])
+    
+    return results
+
+
+def save_results(result1, result2):
+    with open('output/result.txt', 'w', encoding='utf-8') as f:
+        f.write("RESULTS\n")
+        f.write("="*30 + "\n")
+        f.write(f"Total: {result1:.2f}\n\n")
+        f.write("Percentages:\n")
+        
+        for item in result2:
+            f.write(f"{item[0]}: {item[1]:.2f}%\n")
+        
+        f.write("="*30)
+    
+    print("Results saved to output/result.txt")
+
+
+from db_loader import load_data
+from calculator import calc_first, calc_second
+from output_writer import save_results
+
+def main():
+    # Load data
+    table1 = load_data('table1.txt')
+    table2 = load_data('table2.txt')
+    
+    print(f"Loaded: {len(table1)} rows from table1")
+    print(f"Loaded: {len(table2)} rows from table2")
+    
+    # Calculate
+    result1 = calc_first(table1, table2)
+    result2 = calc_second(table1, table2)
+    
+    # Save results
+    save_results(result1, result2)
+    
+    # Show in console
+    print(f"\nResult 1: {result1:.2f}")
+    print("Result 2:")
+    for item in result2:
+        print(f"  {item[0]}: {item[1]:.2f}%")
+
+if __name__ == "__main__":
+    main()
